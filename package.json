@@ -1,0 +1,40 @@
+{
+    "name": "reactor-sdk-ts",
+    "private": false,
+    "version": "0.1.0",
+    "type": "module",
+    "scripts": {
+        "build": "tsc",
+        "lint": "eslint ."
+    },
+    "main": "dist/index.js",
+    "module": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": "./dist/index.js",
+            "require": "./dist/index.js",
+            "types": "./dist/index.d.ts"
+        }
+    },
+    "files": [
+        "dist"
+    ],
+    "typings": "dist/index.d.ts",
+    "dependencies": {
+        "fuels": "^0.101.3",
+        "jsbi": "^4.3.2",
+        "@typescript-eslint/eslint-plugin": "^8.26.0"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.21.0",
+        "decimal.js": "^10.4.3",
+        "eslint": "^9.21.0",
+        "eslint-import-resolver-alias": "^1.1.2",
+        "eslint-plugin-import": "^2.31.0",
+        "globals": "^15.15.0"
+    },
+    "engines": {
+        "node": "^20.0.0 || ^22.0.0 || ^24.0.0"
+    }
+}

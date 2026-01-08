@@ -1,0 +1,5 @@
+import { Account, AssetId, BigNumberish } from 'fuels';
+import { AssetIdInput } from './scripts/AddLiquidity';
+export declare function addLiquidity(reactorPoolContractId: string, wallet: Account, poolId: [AssetId, AssetId, BigNumberish], tickLower: number, tickUpper: number, desiredAmounts: [BigNumberish, BigNumberish], minAmounts: [BigNumberish, BigNumberish], deadlineBlocks?: number): Promise<import("fuels").TransactionResult<void>>;
+export declare function createPoolWithLiquidity(reactorPoolContractId: string, wallet: Account, poolId: [AssetIdInput, AssetIdInput, BigNumberish], initPriceSqrtX96: BigNumberish, tickLower: number, tickUpper: number, amounts: [BigNumberish, BigNumberish], deadlineBlocks: number): Promise<import("fuels").TransactionResult<void>>;
+//# sourceMappingURL=addLiquidity.d.ts.map

@@ -1,0 +1,3 @@
+import { Account, AssetId, BigNumberish } from 'fuels';
+export declare function swapExactIn(reactorPoolContractId: string, wallet: Account, poolId: [AssetId, AssetId, BigNumberish], tokenInId: AssetId, tokenOutId: AssetId, amountIn: BigNumberish, amountOutMin: BigNumberish, sqrtPriceX96Limit?: BigNumberish, deadlineBlocks?: number): Promise<import("fuels").TransactionResult<void>>;
+//# sourceMappingURL=swapExactIn.d.ts.map
