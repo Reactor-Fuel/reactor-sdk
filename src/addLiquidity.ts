@@ -1,12 +1,58 @@
-import { Account, AssetId, BigNumberish, ScriptTransactionRequest } from 'fuels';
+import { Account, BigNumberish, ScriptTransactionRequest } from 'fuels';
 
-import { AddLiquidity, AssetIdInput } from './scripts/AddLiquidity';
+import { CreatePoolWithLiquidity, AddLiquidity } from './scripts';
 import { ReactorPoolContract } from './contracts/ReactorPoolContract';
 import { numberToI64Input } from './signed_integers';
-import { CreatePoolWithLiquidity } from './scripts';
-import { FeeAmount } from './utils';
+import { encodeSqrtRatioX96, FeeAmount, getUsableTick, TICK_SPACINGS } from './utils';
+import JSBI from 'jsbi';
+import { TickMath } from './tickMath';
 
-export async function addLiquidity(
+export async function addLiquidityDecimalized(
+    reactorPoolContractId: string,
+    wallet: Account,
+    baseAssetId: string,
+    quoteAssetId: string,
+    baseDecimals: number,
+    quoteDecimals: number,
+    baseAmount: number,
+    quoteAmount: number,
+    feeTier: FeeAmount,
+    priceLower: number,
+    priceUpper: number,
+    baseAmountMin: number,
+    quoteAmountMin: number,
+    deadlineBlocks: number = 1000,
+) {
+    const baseAmountNoDecimals = baseAmount * (10 ** baseDecimals);
+    const quoteAmountNoDecimals = quoteAmount * (10 ** quoteDecimals);
+    const baseAmountMinNoDecimals = baseAmountMin * (10 ** baseDecimals);
+    const quoteAmountMinNoDecimals = quoteAmountMin * (10 ** quoteDecimals);
+
+    const poolId: [string, string, FeeAmount] = [baseAssetId, quoteAssetId, feeTier];
+
+    let decimalsDelta = quoteDecimals - baseDecimals;
+    const priceLowerNoDecimals = priceLower * (10 ** decimalsDelta);
+    const priceUpperNoDecimals = priceUpper * (10 ** decimalsDelta);
+
+    const priceLowerSqrtX96 = encodeSqrtRatioX96(JSBI.BigInt(priceLowerNoDecimals), JSBI.BigInt(1));
+    const priceUpperSqrtX96 = encodeSqrtRatioX96(JSBI.BigInt(priceUpperNoDecimals), JSBI.BigInt(1));
+
+    const tickLower = getUsableTick(TickMath.getTickAtSqrtRatio(priceLowerSqrtX96), TICK_SPACINGS[feeTier]);
+    const tickUpper = getUsableTick(TickMath.getTickAtSqrtRatio(priceUpperSqrtX96), TICK_SPACINGS[feeTier]);
+
+    return await addLiquidityNonDecimalized(
+        reactorPoolContractId,
+        wallet,
+        poolId,
+        tickLower,
+        tickUpper,
+        [baseAmountNoDecimals, quoteAmountNoDecimals],
+        [baseAmountMinNoDecimals, quoteAmountMinNoDecimals],
+        deadlineBlocks,
+    );
+}
+
+export async function addLiquidityNonDecimalized(
     reactorPoolContractId: string,
     wallet: Account,
     poolId: [string, string, FeeAmount],
@@ -84,7 +130,54 @@ export async function addLiquidity(
     return await tx.waitForResult();
 }
 
-export async function createPoolWithLiquidity(
+export async function createPoolWithLiquidityDecimalized(
+    reactorPoolContractId: string,
+    wallet: Account,
+    baseAssetId: string,
+    quoteAssetId: string,
+    baseDecimals: number,
+    quoteDecimals: number,
+    baseAmount: number,
+    quoteAmount: number,
+    feeTier: FeeAmount,
+    priceLower: number,
+    priceUpper: number,
+    deadlineBlocks: number,
+) {
+    const baseAmountNoDecimals = baseAmount * (10 ** baseDecimals);
+    const quoteAmountNoDecimals = quoteAmount * (10 ** quoteDecimals);
+    const initPriceSqrtX96 = encodeSqrtRatioX96(JSBI.BigInt(quoteAmountNoDecimals.toString()), JSBI.BigInt(baseAmountNoDecimals.toString()));
+    const poolId: [string, string, BigNumberish] = [baseAssetId, quoteAssetId, feeTier];
+
+    const decimalsDelta = quoteDecimals - baseDecimals;
+    const priceLowerNoDecimals = priceLower * (10 ** decimalsDelta);
+    const priceUpperNoDecimals = priceUpper * (10 ** decimalsDelta);
+
+    const priceLowerSqrtX96 = encodeSqrtRatioX96(JSBI.BigInt(priceLowerNoDecimals), JSBI.BigInt(1));
+    const priceUpperSqrtX96 = encodeSqrtRatioX96(JSBI.BigInt(priceUpperNoDecimals), JSBI.BigInt(1));
+
+    const tickLower = getUsableTick(TickMath.getTickAtSqrtRatio(priceLowerSqrtX96), TICK_SPACINGS[feeTier]);
+    const tickUpper = getUsableTick(TickMath.getTickAtSqrtRatio(priceUpperSqrtX96), TICK_SPACINGS[feeTier]);
+
+    const tickInitial = getUsableTick(TickMath.getTickAtSqrtRatio(initPriceSqrtX96), TICK_SPACINGS[feeTier]);
+
+    if (tickInitial < tickLower || tickInitial > tickUpper) {
+        throw Error(`initial tick: ${tickInitial} not in range [${tickLower}, ${tickUpper}]`);
+    } else {
+        return await createPoolWithLiquidityNonDecimalized(
+            reactorPoolContractId,
+            wallet,
+            poolId,
+            initPriceSqrtX96.toString(),
+            tickLower,
+            tickUpper,
+            [baseAmountNoDecimals, quoteAmountNoDecimals],
+            deadlineBlocks,
+        );
+    }
+}
+
+export async function createPoolWithLiquidityNonDecimalized(
     reactorPoolContractId: string,
     wallet: Account,
     poolId: [string, string, BigNumberish],
@@ -125,8 +218,8 @@ export async function createPoolWithLiquidity(
 
 // 2. Instantiate the script main arguments
     const scriptArguments = [
-        {bits: poolId[0]},
-        {bits: poolId[1]},
+        { bits: poolId[0] },
+        { bits: poolId[1] },
         poolId[2],
         initPriceSqrtX96,
         numberToI64Input(tickLower),

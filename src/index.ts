@@ -1,4 +1,4 @@
-export {addLiquidity, createPoolWithLiquidity} from './addLiquidity';
+export {addLiquidityNonDecimalized, createPoolWithLiquidityNonDecimalized, addLiquidityDecimalized, createPoolWithLiquidityDecimalized} from './addLiquidity';
 export * from './removeLiquidity';
 export * from './collectFees';
 export * from './quoteExactIn';
